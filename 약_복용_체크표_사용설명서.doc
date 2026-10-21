@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>약 복용 체크표 사용설명서</title>
+<style>
+@page { size:A4; margin:16mm; }
+body { font-family:"Noto Sans KR","Malgun Gothic",Arial,sans-serif; color:#17212b; font-size:11pt; line-height:1.6; }
+h1 { color:#123b5d; font-size:25pt; border-bottom:4px solid #f2b84b; padding-bottom:8px; }
+h2 { color:#087f8c; font-size:15pt; margin:18px 0 6px; }
+h3 { color:#123b5d; font-size:12pt; margin:10px 0 2px; }
+.box { border:1px solid #cbd5e1; border-radius:8px; padding:10px 14px; margin:8px 0; }
+.tip { background:#e8f6f4; border-left:5px solid #087f8c; padding:10px 14px; }
+.small { color:#5b6b78; font-size:9.5pt; }
+</style>
+</head>
+<body>
+<h1>💊 약 복용 체크표 사용설명서</h1>
+<p><strong>부모님께 드리는 쉬운 사용 안내</strong></p>
+<div class="tip">약을 먹는 시간을 등록하고, 먹은 뒤 체크하면 오늘 복용률과 최근 7일 기록을 확인할 수 있습니다.</div>
+
+<h2>1. 이 앱이 해 주는 일</h2>
+<p>아침·점심·저녁에 먹을 약을 등록합니다.</p>
+<p>먹은 약을 체크하면 오늘 복용률을 보여줍니다.</p>
+<p>최근 7일 기록을 확인하고 CSV 파일로 저장할 수 있습니다.</p>
+
+<h2>2. 화면 순서</h2>
+<div class="box">
+<strong>① 오늘 날짜와 복용률</strong> — 오늘 날짜, 완료한 약의 수, 복용률 막대가 보입니다.<br>
+<strong>② 오늘 먹을 약</strong> — 아침·점심·저녁 구역에 약이 보입니다. 먹은 약은 초록색으로 바뀝니다.<br>
+<strong>③ 최근 7일 기록</strong> — 날짜별 기록과 CSV 내려받기 버튼이 있습니다.<br>
+<strong>④ 약 등록하기</strong> — 약 이름과 먹는 때를 고릅니다.<br>
+<strong>⑤ 등록된 약</strong> — 등록한 약을 확인하거나 삭제합니다.
+</div>
+
+<h2>3. 휴대폰 바탕화면에 추가하기</h2>
+<h3>안드로이드</h3>
+<ol><li>index.html을 Chrome으로 엽니다.</li><li>오른쪽 위 ⋮를 누릅니다.</li><li>“홈 화면에 추가” 또는 “앱 설치”를 누릅니다.</li><li>“추가”를 누릅니다.</li></ol>
+<h3>아이폰</h3>
+<ol><li>파일 앱에서 index.html을 엽니다.</li><li>Safari 또는 지원되는 브라우저로 엽니다.</li><li>공유 버튼을 누르고 “홈 화면에 추가”를 선택합니다.</li></ol>
+<p class="small">메뉴가 보이지 않으면 해당 브라우저가 기기 안의 HTML 파일 바로가기를 지원하지 않는 경우입니다. 파일 앱에 보관하고 필요할 때 눌러 열어도 됩니다.</p>
+
+<h2>4. 처음 한 번만 하는 일: 약 등록</h2>
+<ol><li>화면 아래의 “약 등록하기”로 이동합니다.</li><li>약 이름을 적습니다.</li><li>아침·점심·저녁 중 먹는 때를 하나 이상 고릅니다.</li><li>“약 등록하기”를 누릅니다.</li></ol>
+<div class="tip"><strong>예제 약 불러오기</strong>를 누르면 샘플 약 4개로 사용법을 먼저 확인할 수 있습니다.</div>
+
+<h2>5. 매일 하는 일: 체크하기</h2>
+<ol><li>오늘 먹을 약에서 현재 시간대의 약을 찾습니다.</li><li>약 이름이나 네모 체크박스를 누릅니다.</li><li>먹은 약은 초록색으로 바뀌고 복용률이 올라갑니다.</li><li>잘못 눌렀다면 같은 곳을 다시 눌러 해제합니다.</li></ol>
+
+<h2>6. 자주 생기는 문제</h2>
+<div class="box">
+<h3>약이 보이지 않아요</h3><p>등록된 약에서 이름과 먹는 때를 확인하세요.</p>
+<h3>등록이 안 돼요</h3><p>약 이름을 적고 아침·점심·저녁 중 하나 이상을 골라야 합니다.</p>
+<h3>체크가 사라졌어요</h3><p>날짜가 바뀌면 새 날짜가 시작됩니다. 이전 기록은 최근 7일 표에서 확인하세요.</p>
+<h3>복용률이 달라요</h3><p>등록된 모든 시간대가 계산되는지 확인하세요.</p>
+<h3>기록을 파일로 저장하고 싶어요</h3><p>최근 7일 기록 아래의 CSV 내려받기 버튼을 누르세요.</p>
+</div>
+
+<h2>7. 꼭 읽어 주세요</h2>
+<div class="tip"><strong>⚕️ 이 앱은 기록용입니다.</strong> 복용량이나 복용 방법을 판단하지 않습니다. 약은 의사·약사의 안내를 따르세요. 궁금한 점이나 몸의 이상이 있으면 의사 또는 약사에게 확인하세요.</div>
+<p class="small">개인 기록은 사용하는 기기의 브라우저에 저장됩니다.</p>
+</body>
+</html>
