@@ -220,6 +220,12 @@
     .medicine-row.checked { background: var(--green-light); }
     .medicine-row.checked label { color: var(--green); }
     #downloadCsvButton { margin: 0 0 14px; background: var(--green); }
+    .date-controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:12px; }
+    .date-controls button { min-height:48px; }
+    .date-controls input[type="date"] { min-height:48px; padding:8px 10px; border:2px solid var(--gray); border-radius:10px; font-size:18px; }
+    .csv-import { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:0 0 14px; padding:12px; border:2px dashed var(--line); border-radius:10px; background:#f8fafc; }
+    .csv-import label { font-weight:700; }
+    .csv-import input[type="file"] { max-width:100%; font-size:17px; }
 
     @media (max-width: 720px) {
       main { width: min(100% - 18px, 1100px); padding-top: 12px; }
@@ -262,6 +268,12 @@
     <section class="card top-card" aria-labelledby="app-title">
       <h1 id="app-title">💊 약 복용 체크표</h1>
       <p class="date" id="todayText">📅 오늘</p>
+      <div class="date-controls" aria-label="기록 날짜 선택">
+        <button type="button" id="previousDateButton">◀ 이전 날짜</button>
+        <input type="date" id="datePicker" aria-label="기록 날짜 선택">
+        <button type="button" id="todayDateButton">오늘</button>
+        <button type="button" id="nextDateButton">다음 날짜 ▶</button>
+      </div>
       <div class="rate" id="rateText" aria-live="polite">📈 0/0 완료, 0%</div>
       <p class="notice">이 앱은 약 복용 기록을 위한 도구이며, 의학적 조언을 제공하지 않습니다. 복용 방법은 의사나 약사에게 확인하세요.</p>
       <p class="message" id="topMessage" aria-live="polite"></p>
@@ -280,8 +292,13 @@
 
     <section class="card" aria-labelledby="history-title">
       <h2 id="history-title">📊 최근 7일 기록</h2>
-      <p>● 표시는 그 약의 정해진 시간에 모두 먹었다는 뜻입니다. 지난 기록은 보기만 할 수 있습니다.</p>
+      <p>● 표시는 그 약의 정해진 시간에 모두 먹었다는 뜻입니다. 위의 날짜 버튼으로 지난 기록을 골라 수정할 수 있습니다.</p>
       <button type="button" id="downloadCsvButton">⬇️ 최근 7일 CSV 내려받기</button>
+      <div class="csv-import">
+        <label for="csvFileInput">CSV 기록 불러오기</label>
+        <input type="file" id="csvFileInput" accept=".csv,text/csv">
+        <button type="button" id="importCsvButton">CSV 업로드</button>
+      </div>
       <div class="table-wrap">
         <table id="historyTable"></table>
       </div>
@@ -325,6 +342,8 @@
     const STORAGE_KEY = 'medicineTrackerData';
     const TIMES = ['morning', 'lunch', 'evening'];
     const TIME_LABELS = { morning: '아침', lunch: '점심', evening: '저녁' };
+    // 화면에서 보고 있거나 수정 중인 날짜입니다. 처음에는 현재 날짜를 봅니다.
+    let viewDateKey = null;
 
     // 날짜를 YYYY-MM-DD 형식으로 만듭니다. UTC 변환을 쓰지 않아 한국 시간 기준 날짜가 어긋나지 않습니다.
     function getDateKey(date = new Date()) {
@@ -344,6 +363,12 @@
     function dateFromKey(dateKey) {
       const [year, month, day] = dateKey.split('-').map(Number);
       return new Date(year, month - 1, day, 12, 0, 0, 0);
+    }
+
+    function getNextDateKey(dateKey, amount = 1) {
+      const date = dateFromKey(dateKey);
+      date.setDate(date.getDate() + amount);
+      return getDateKey(date);
     }
 
     // 날짜를 화면에 읽기 쉬운 형식으로 보여줍니다.
@@ -390,6 +415,22 @@
       }
     }
 
+    // 선택한 날짜의 기록을 가져옵니다. 오늘은 todayChecks, 지난 날짜는 history에서 읽습니다.
+    function getChecksForDate(dateKey) {
+      return dateKey === data.currentDate ? data.todayChecks : (data.history[dateKey] || {});
+    }
+
+    // 선택한 날짜의 기록을 저장합니다. 과거 날짜도 수정할 수 있습니다.
+    function saveChecksForDate(dateKey, checks) {
+      if (dateKey === data.currentDate) data.todayChecks = checks;
+      else data.history[dateKey] = checks;
+      saveData();
+    }
+
+    function isFutureDate(dateKey) {
+      return dateKey > data.currentDate;
+    }
+
     // 약과 복용 시간으로 체크 기록의 고유한 이름을 만듭니다.
     function checkKey(medicineId, time) {
       return `${medicineId}__${time}`;
@@ -402,7 +443,7 @@
       data.medicines.forEach(medicine => {
         medicine.times.forEach(time => {
           total += 1;
-          if (data.todayChecks[checkKey(medicine.id, time)] === true) completed += 1;
+          if (getChecksForDate(viewDateKey)[checkKey(medicine.id, time)] === true) completed += 1;
         });
       });
       return { total, completed, percent: total ? Math.round(completed / total * 100) : 0 };
@@ -410,7 +451,13 @@
 
     // 화면 위의 날짜와 복용률을 그립니다.
     function renderHeader() {
-      document.getElementById('todayText').textContent = `📅 오늘: ${formatDate(data.currentDate)}`;
+      const isToday = viewDateKey === data.currentDate;
+      document.getElementById('todayText').textContent = `📅 기록 날짜: ${formatDate(viewDateKey)}${isToday ? ' (오늘)' : ''}`;
+      const datePicker = document.getElementById('datePicker');
+      datePicker.value = viewDateKey;
+      datePicker.max = data.currentDate;
+      document.getElementById('previousDateButton').disabled = false;
+      document.getElementById('nextDateButton').disabled = isFutureDate(getNextDateKey(viewDateKey));
       const counts = getTodayCounts();
       document.getElementById('rateText').textContent = `📈 ${counts.completed}/${counts.total} 완료, ${counts.percent}%`;
     }
@@ -444,6 +491,7 @@
     function renderToday() {
       const grid = document.getElementById('doseGrid');
       grid.innerHTML = '';
+      const checks = getChecksForDate(viewDateKey);
       TIMES.forEach(time => {
         const section = document.createElement('section');
         section.className = 'dose-section';
@@ -468,11 +516,13 @@
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.id = id;
-            checkbox.checked = data.todayChecks[checkKey(medicine.id, time)] === true;
+            checkbox.checked = checks[checkKey(medicine.id, time)] === true;
             row.classList.toggle('checked', checkbox.checked);
             checkbox.setAttribute('aria-label', `${medicine.name}, ${TIME_LABELS[time]} 복용 완료`);
             checkbox.addEventListener('change', () => {
-              data.todayChecks[checkKey(medicine.id, time)] = checkbox.checked;
+              const updatedChecks = { ...getChecksForDate(viewDateKey) };
+              updatedChecks[checkKey(medicine.id, time)] = checkbox.checked;
+              saveChecksForDate(viewDateKey, updatedChecks);
               row.classList.toggle('checked', checkbox.checked);
               saveData();
               renderHeader();
@@ -695,12 +745,125 @@
       showMessage('formMessage', '약을 등록했습니다.', 'success');
     });
 
+    // 날짜 선택 버튼으로 이전·오늘·다음 날짜를 이동합니다. 미래 날짜는 선택할 수 없습니다.
+    function moveViewDate(amount) {
+      const nextKey = getNextDateKey(viewDateKey, amount);
+      if (isFutureDate(nextKey)) {
+        showMessage('topMessage', '오늘 이후의 날짜는 선택할 수 없습니다.', 'error');
+        return;
+      }
+      viewDateKey = nextKey;
+      renderAll();
+    }
+
+    document.getElementById('previousDateButton').addEventListener('click', () => moveViewDate(-1));
+    document.getElementById('nextDateButton').addEventListener('click', () => moveViewDate(1));
+    document.getElementById('todayDateButton').addEventListener('click', () => {
+      viewDateKey = data.currentDate;
+      renderAll();
+    });
+    document.getElementById('datePicker').addEventListener('change', event => {
+      const selected = event.target.value;
+      if (!selected) return;
+      if (isFutureDate(selected)) {
+        event.target.value = viewDateKey;
+        showMessage('topMessage', '오늘 이후의 날짜는 선택할 수 없습니다.', 'error');
+        return;
+      }
+      viewDateKey = selected;
+      renderAll();
+    });
+
+    // CSV 내용을 따옴표와 쉼표까지 안전하게 읽습니다.
+    function parseCsvText(text) {
+      const rows = [];
+      let row = [];
+      let cell = '';
+      let quoted = false;
+      const cleanText = text.replace(/^\uFEFF/, '');
+      for (let i = 0; i < cleanText.length; i += 1) {
+        const char = cleanText[i];
+        const next = cleanText[i + 1];
+        if (char === '"' && quoted && next === '"') { cell += '"'; i += 1; continue; }
+        if (char === '"') { quoted = !quoted; continue; }
+        if (char === ',' && !quoted) { row.push(cell); cell = ''; continue; }
+        if ((char === '\n' || char === '\r') && !quoted) {
+          if (char === '\r' && next === '\n') i += 1;
+          row.push(cell); cell = '';
+          if (row.some(value => value.trim() !== '')) rows.push(row);
+          row = [];
+          continue;
+        }
+        cell += char;
+      }
+      if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+      return rows;
+    }
+
+    async function importCsvFile() {
+      const input = document.getElementById('csvFileInput');
+      const file = input.files[0];
+      if (!file) {
+        showMessage('topMessage', '먼저 CSV 파일을 선택해 주세요.', 'error');
+        return;
+      }
+      try {
+        const rows = parseCsvText(await file.text());
+        if (rows.length < 2) throw new Error('내용이 없는 CSV 파일입니다.');
+        const headers = rows[0].map(value => value.trim().replace(/^\uFEFF/, ''));
+        const dateIndex = headers.indexOf('날짜');
+        const nameIndex = headers.indexOf('약이름');
+        const timeIndex = headers.indexOf('시간대');
+        const statusIndex = headers.indexOf('복용여부');
+        if ([dateIndex, nameIndex, timeIndex, statusIndex].some(index => index < 0)) {
+          throw new Error('열 이름은 날짜, 약이름, 시간대, 복용여부여야 합니다.');
+        }
+
+        let imported = 0;
+        const importedDates = [];
+        rows.slice(1).forEach(row => {
+          const dateKey = (row[dateIndex] || '').trim();
+          const name = (row[nameIndex] || '').trim();
+          const timeText = (row[timeIndex] || '').trim();
+          const status = (row[statusIndex] || '').trim().toUpperCase();
+          const time = Object.keys(TIME_LABELS).find(key => TIME_LABELS[key] === timeText) || (TIMES.includes(timeText) ? timeText : null);
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey) || !name || !time || !['O', 'X'].includes(status) || isFutureDate(dateKey)) return;
+
+          let medicine = data.medicines.find(item => item.name === name);
+          if (!medicine) {
+            medicine = { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, name, times: [time] };
+            data.medicines.push(medicine);
+          } else if (!medicine.times.includes(time)) {
+            medicine.times.push(time);
+          }
+          const checks = { ...getChecksForDate(dateKey) };
+          checks[checkKey(medicine.id, time)] = status === 'O';
+          saveChecksForDate(dateKey, checks);
+          imported += 1;
+          if (!importedDates.includes(dateKey)) importedDates.push(dateKey);
+        });
+
+        if (!imported) throw new Error('가져올 수 있는 기록이 없습니다. 날짜와 열 이름을 확인해 주세요.');
+        saveData();
+        importedDates.sort();
+        viewDateKey = importedDates[importedDates.length - 1] || viewDateKey;
+        renderAll();
+        input.value = '';
+        showMessage('topMessage', `${imported}개의 CSV 기록을 불러왔습니다.`, 'success');
+      } catch (error) {
+        showMessage('topMessage', `CSV를 불러오지 못했습니다: ${error.message}`, 'error');
+      }
+    }
+
+    document.getElementById('importCsvButton').addEventListener('click', importCsvFile);
+
     // 개발용 버튼으로 날짜를 하루 넘겨, 이전 기록 저장과 오늘 초기화를 확인합니다.
     document.getElementById('devAdvanceDateButton').addEventListener('click', () => {
       const nextDate = dateFromKey(getAppTodayKey());
       nextDate.setDate(nextDate.getDate() + 1);
       sessionStorage.setItem(DEV_DATE_KEY, getDateKey(nextDate));
       prepareToday();
+      viewDateKey = data.currentDate;
       renderAll();
       showMessage('topMessage', `개발용으로 ${formatDate(data.currentDate)}로 이동했습니다. 이전 체크는 기록표에 저장되었습니다.`, 'success');
     });
@@ -725,9 +888,11 @@
     // 앱을 열 때 날짜가 바뀌었는지 먼저 처리합니다.
     let data = loadData();
     prepareToday();
+    viewDateKey = data.currentDate;
     removeDuplicateLeadingEmojis();
     renderAll();
     fixDoseTitleEmojis();
   </script>
 </body>
 </html>
+
